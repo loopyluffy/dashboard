@@ -13,7 +13,12 @@
                 "run",
                 "main.py"
             ],
-            "justMyCode": true
+            "justMyCode": true,
+            "env": {
+                // "PYTHONPATH": "${workspaceRoot}"
+                // "PYTHONPATH": "/Users/wm-il000289/Desktop/repository/hummingbot"
+                "PYTHONPATH": "${userHome}/Desktop/repository/hummingbot"
+            }
         }
     ]
 }

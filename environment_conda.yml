@@ -8,7 +8,7 @@ dependencies:
   - pydantic=1.9.*
   - pip
   - pip:
-      - hummingbot
+      # - hummingbot
       - streamlit
       - watchdog
       - plotly
@@ -27,5 +27,5 @@ dependencies:
       - st-pages
       - streamlit-elements==0.1.*
       - streamlit-authenticator
-      - git+https://github.com/hummingbot/hbot-remote-client-py.git
-      - git+https://github.com/hummingbot/docker-manager.git
+      # - git+https://github.com/hummingbot/hbot-remote-client-py.git
+      # - git+https://github.com/hummingbot/docker-manager.git

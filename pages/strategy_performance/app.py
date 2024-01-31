@@ -9,6 +9,8 @@ from utils.loopy_database_manager import get_databases, LoopyDBManager
 # from utils.loopy_data_manipulation import LoopyStrategyData
 
 from utils.graphs import PerformanceGraphs
+from data_viz.performance.performance_charts import PerformanceCharts
+from data_viz.performance.performance_candles import PerformanceCandles
 from utils.st_utils import initialize_st_page, download_csv_button, style_metric_cards, db_error_message
 
 
@@ -61,6 +63,7 @@ else:
 # Load strategy data
 strategy_data = selected_db.get_strategy_data()
 main_performance_charts = PerformanceGraphs(strategy_data)
+performance_charts = PerformanceCharts(strategy_data)
 
 # Strategy summary section
 st.divider()
@@ -72,7 +75,7 @@ if not main_performance_charts.has_summary_table:
 else:
     main_tab, chart_tab = st.tabs(["Main", "Chart"])
     with chart_tab:
-        st.plotly_chart(main_performance_charts.summary_chart(), use_container_width=True)
+        st.plotly_chart(performance_charts.realized_pnl_over_trading_pair_fig, use_container_width=True)
     with main_tab:
         selection = main_performance_charts.strategy_summary_table()
         if selection is None:
@@ -103,6 +106,7 @@ start_time, end_time = st.select_slider("Select a time range to analyze",
 single_market_strategy_data = strategy_data.get_single_market_strategy_data(selected_exchange, selected_trading_pair)
 time_filtered_strategy_data = single_market_strategy_data.get_filtered_strategy_data(start_time, end_time)
 time_filtered_performance_charts = PerformanceGraphs(time_filtered_strategy_data)
+time_performance_charts = PerformanceCharts(time_filtered_strategy_data)
 
 # Header metrics
 col1, col2, col3, col4, col5, col6, col7, col8 = st.columns(8)
@@ -143,7 +147,7 @@ with col8:
               help="The total amount of quote asset sold.")
 
 # Cummulative pnl chart
-st.plotly_chart(time_filtered_performance_charts.pnl_over_time(), use_container_width=True)
+st.plotly_chart(time_performance_charts.realized_pnl_over_time_fig, use_container_width=True)
 
 # Market activity section
 st.subheader("💱 Market activity")
@@ -173,14 +177,17 @@ else:
         # Get Page Filtered Strategy Data
         page_filtered_strategy_data = single_market_strategy_data.get_filtered_strategy_data(start_time_page, end_time_page)
         page_performance_charts = PerformanceGraphs(page_filtered_strategy_data)
-        candles_chart = page_performance_charts.candles_graph(candles_df, interval=interval)
-
+        page_charts = PerformanceCharts(page_filtered_strategy_data)
+        page_candles = PerformanceCandles(source=page_filtered_strategy_data,
+                                          candles_df=candles_df,
+                                          extra_rows=2)
+        # candles_chart = page_performance_charts.candles_graph(candles_df, interval=interval)
         # Show auxiliary charts
         intraday_tab, returns_tab, returns_data_tab, positions_tab, other_metrics_tab = st.tabs(["Intraday", "Returns", "Returns Data", "Positions", "Other Metrics"])
         with intraday_tab:
-            st.plotly_chart(time_filtered_performance_charts.intraday_performance(), use_container_width=True)
+            st.plotly_chart(page_charts.intraday_performance_fig, use_container_width=True)
         with returns_tab:
-            st.plotly_chart(time_filtered_performance_charts.returns_histogram(), use_container_width=True)
+            st.plotly_chart(page_charts.returns_distribution_fig, use_container_width=True)
         with returns_data_tab:
             raw_returns_data = time_filtered_strategy_data.trade_fill[["timestamp", "gross_pnl", "trade_fee", "realized_pnl"]].dropna(subset="realized_pnl")
             st.dataframe(raw_returns_data,
@@ -189,9 +196,8 @@ else:
                          height=(min(len(time_filtered_strategy_data.trade_fill) * 39, 600)))
             download_csv_button(raw_returns_data, "raw_returns_data", "download-raw-returns")
         with positions_tab:
-            positions_sunburst = page_performance_charts.position_executor_summary_sunburst()
-            if positions_sunburst:
-                st.plotly_chart(page_performance_charts.position_executor_summary_sunburst(), use_container_width=True)
+            if page_charts.positions_summary_sunburst_fig is not None:
+                st.plotly_chart(page_charts.positions_summary_sunburst_fig, use_container_width=True)
             else:
                 st.info("No position executor data found.")
         with other_metrics_tab:
@@ -220,7 +226,7 @@ else:
                 st.metric(label='Average Sell Price', value=round(time_filtered_strategy_data.average_sell_price, 4),
                           help="The average price of the base asset sold.")
     with col1:
-        st.plotly_chart(candles_chart, use_container_width=True)
+        st.plotly_chart(page_candles.figure(), use_container_width=True)
 
 # Tables section
 st.divider()

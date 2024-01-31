@@ -2,8 +2,12 @@ import os
 import pandas as pd
 import streamlit as st
 import math
-from utils.os_utils import get_databases
+# from utils.os_utils import get_databases
 from utils.database_manager import DatabaseManager
+# change package @luffy
+from utils.loopy_database_manager import get_databases, LoopyDBManager
+# from utils.loopy_data_manipulation import LoopyStrategyData
+
 from utils.graphs import PerformanceGraphs
 from utils.st_utils import initialize_st_page, download_csv_button, style_metric_cards, db_error_message
 
@@ -36,6 +40,8 @@ with st.expander("⬆️ Upload"):
         with open(os.path.join(UPLOAD_FOLDER, uploaded_db.name), "wb") as f:
             f.write(file_contents)
         st.success("File uploaded and saved successfully!")
+        # @luffy
+        # selected_db = DatabaseManager(uploaded_db.name)
         selected_db = DatabaseManager(uploaded_db.name)
 
 # Find and select existing databases
@@ -44,7 +50,9 @@ if dbs is not None:
     bot_source = st.selectbox("Choose your database source:", dbs.keys())
     db_names = [x for x in dbs[bot_source]]
     selected_db_name = st.selectbox("Select a database to start:", db_names)
-    selected_db = DatabaseManager(db_name=dbs[bot_source][selected_db_name])
+    # @luffy
+    # selected_db = DatabaseManager(db_name=dbs[bot_source][selected_db_name])
+    selected_db = LoopyDBManager(db_name=dbs[bot_source][selected_db_name])
 else:
     st.warning("Ups! No databases were founded. Start uploading one")
     selected_db = None

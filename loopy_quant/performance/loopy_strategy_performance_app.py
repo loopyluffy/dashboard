@@ -2,8 +2,13 @@ import os
 import pandas as pd
 import streamlit as st
 import math
-from utils.os_utils import get_databases
+# from utils.os_utils import get_databases
 from utils.database_manager import DatabaseManager
+# change package @luffy
+from loopy_quant.loopy_database_manager import get_databases
+from loopy_quant.loopy_real_db_manager import LoopyRealDBManager
+from loopy_quant.loopy_backtesting_db_manager import LoopyBacktestingDBManager
+# from utils.loopy_data_manipulation import LoopyStrategyData
 
 from utils.graphs import PerformanceGraphs
 from data_viz.performance.performance_charts import PerformanceCharts
@@ -39,6 +44,8 @@ with st.expander("⬆️ Upload"):
         with open(os.path.join(UPLOAD_FOLDER, uploaded_db.name), "wb") as f:
             f.write(file_contents)
         st.success("File uploaded and saved successfully!")
+        # @luffy
+        # selected_db = DatabaseManager(uploaded_db.name)
         selected_db = DatabaseManager(uploaded_db.name)
 
 # Find and select existing databases
@@ -47,7 +54,29 @@ if dbs is not None:
     bot_source = st.selectbox("Choose your database source:", dbs.keys())
     db_names = [x for x in dbs[bot_source]]
     selected_db_name = st.selectbox("Select a database to start:", db_names)
-    selected_db = DatabaseManager(db_name=dbs[bot_source][selected_db_name])
+    # @luffy
+    # selected_db = DatabaseManager(db_name=dbs[bot_source][selected_db_name])
+    # selected_db = LoopyDBManager(db_name=dbs[bot_source][selected_db_name])
+
+    # select time duration @luffy
+    # ------------------------------
+    if "postgres" in dbs[bot_source][selected_db_name]:
+        from datetime import date, timedelta
+        # Set default values
+        default_start_date = date.today() - timedelta(days=1) # timedelta(days=30)
+        default_end_date = date.today()
+
+        # Add date input UI components for start and end dates
+        start_date = st.date_input('Start date', value=default_start_date)
+        end_date = st.date_input('End date', value=default_end_date)
+
+        if "real" in dbs[bot_source][selected_db_name]:
+            selected_db = LoopyRealDBManager(dbs[bot_source][selected_db_name], start_date, end_date)
+        else:
+            selected_db = LoopyBacktestingDBManager(dbs[bot_source][selected_db_name], start_date, end_date)
+    else:
+        selected_db = DatabaseManager(db_name=dbs[bot_source][selected_db_name])
+    # ------------------------------
 else:
     st.warning("Ups! No databases were founded. Start uploading one")
     selected_db = None

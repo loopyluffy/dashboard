@@ -9,6 +9,7 @@ from loopy_quant.loopy_database_manager import get_databases
 from loopy_quant.loopy_real_db_manager import LoopyRealDBManager
 from loopy_quant.loopy_backtesting_db_manager import LoopyBacktestingDBManager
 # from utils.loopy_data_manipulation import LoopyStrategyData
+from loopy_quant.performance.loopy_performance_candles import LoopyPerformanceCandles
 
 from utils.graphs import PerformanceGraphs
 from data_viz.performance.performance_charts import PerformanceCharts
@@ -200,9 +201,13 @@ else:
         page_filtered_strategy_data = single_market_strategy_data.get_filtered_strategy_data(start_time_page, end_time_page)
         page_performance_charts = PerformanceGraphs(page_filtered_strategy_data)
         page_charts = PerformanceCharts(page_filtered_strategy_data)
-        page_candles = PerformanceCandles(source=page_filtered_strategy_data,
-                                          candles_df=candles_df,
-                                          extra_rows=2)
+        # page_candles = PerformanceCandles(source=page_filtered_strategy_data,
+        #                                   candles_df=candles_df,
+        #                                   extra_rows=2)
+        # add extra row for indicator @luffy
+        page_candles = LoopyPerformanceCandles(source=page_filtered_strategy_data,
+                                               candles_df=candles_df,
+                                               extra_rows=3)
         # candles_chart = page_performance_charts.candles_graph(candles_df, interval=interval)
         # Show auxiliary charts
         intraday_tab, returns_tab, returns_data_tab, positions_tab, other_metrics_tab = st.tabs(["Intraday", "Returns", "Returns Data", "Positions", "Other Metrics"])

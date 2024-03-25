@@ -706,9 +706,9 @@ class LoopyRealDBManager(LoopyDBManager):
         position_executors["tp"] = 1.0
         position_executors["tl"] = position_executors["timestamp"] + timedelta(days=1)
         # position_executors["open_order_type"] = 'LIMIT'
-        position_executors["take_profit_order_type"] = position_executors['close_order_type']
-        position_executors["stop_loss_order_type"] = position_executors['close_order_type']
-        position_executors["time_limit_order_type"] = position_executors['close_order_type']
+        # position_executors["take_profit_order_type"] = position_executors['close_order_type'].apply(lambda x: x if x is not None else None)
+        # position_executors["stop_loss_order_type"] = position_executors['close_order_type'].apply(lambda x: x if x is not None else None)
+        # position_executors["time_limit_order_type"] = position_executors['close_order_type'].apply(lambda x: x if x is not None else None)
 
         # extra
         position_executors["datetime"] =position_executors["timestamp"]

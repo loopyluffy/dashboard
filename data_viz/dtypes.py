@@ -14,13 +14,6 @@ class IndicatorConfig(BaseModel):
     signal: int = None
 
 
-class IndicatorsConfigBase(BaseModel):
-    bollinger_bands: IndicatorConfig = None
-    ema: IndicatorConfig = None
-    macd: IndicatorConfig = None
-    rsi: IndicatorConfig = None
-
-
 class PositionsVisualConfig(BaseModel):
     show: bool = True
     color: str = 'black'
@@ -30,3 +23,9 @@ class PositionsVisualConfig(BaseModel):
     sell_symbol: str = 'triangle-down'
     profitable_color: str = 'green'
     non_profitable_color: str = 'red'
+
+
+MACD_EXAMPLE_CONFIG = IndicatorConfig(visible=True, title="macd", row=1, col=1, color="red", fast=12, slow=26, signal=9)
+RSI_EXAMPLE_CONFIG = IndicatorConfig(visible=True, title="rsi", row=2, col=3, color="green", length=14)
+BBANDS_EXAMPLE_CONFIG = IndicatorConfig(visible=True, title="bbands", row=1, col=1, color="blue", length=20, std=2.0)
+EMA_EXAMPLE_CONFIG = IndicatorConfig(visible=True, title="ema", row=1, col=1, color="yellow", length=20, culo="asd")

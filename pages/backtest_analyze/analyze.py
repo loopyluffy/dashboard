@@ -13,6 +13,7 @@ from decimal import Decimal
 from quants_lab.strategy.strategy_analysis import StrategyAnalysis
 from data_viz.backtesting.backtesting_charts import BacktestingCharts
 from data_viz.backtesting.backtesting_candles import BacktestingCandles
+import data_viz.utils as utils
 from utils.optuna_database_manager import OptunaDBManager
 from utils.os_utils import load_controllers
 from utils.st_utils import initialize_st_page
@@ -189,19 +190,20 @@ else:
         trade_cost = st.number_input("Trade cost",
                                      value=0.0006,
                                      min_value=0.0001, format="%.4f", )
-    with col2:
         initial_portfolio_usd = st.number_input("Initial portfolio usd",
                                                 value=10000.00,
                                                 min_value=1.00,
                                                 max_value=999999999.99)
-    with col3:
+    with col2:
         start = st.text_input("Start", value="2023-01-01")
+        indicators_config_path = st.selectbox("Indicators config path", utils.get_indicators_config_paths())
+    with col3:
         end = st.text_input("End", value="2024-01-01")
-    c1, c2 = st.columns([1, 1])
     with col4:
-        add_positions = st.checkbox("Add positions", value=True)
-        add_volume = st.checkbox("Add volume", value=True)
-        add_pnl = st.checkbox("Add PnL", value=True)
+        show_buys = st.checkbox("Buys", value=False)
+        show_sells = st.checkbox("Sells", value=False)
+        show_positions = st.checkbox("Positions", value=False)
+        show_indicators = st.checkbox("Indicators", value=False)
         save_config = st.button("💾Save controller config!")
         config = controller["config"](**st.session_state["strategy_params"])
         controller = controller["class"](config=config)
@@ -224,13 +226,15 @@ else:
 
             backtesting_charts = BacktestingCharts(strategy_analysis)
             backtesting_candles = BacktestingCandles(strategy_analysis,
+                                                     indicators_config=utils.load_indicators_config(indicators_config_path),
                                                      line_mode=False,
-                                                     extra_rows=4,
-                                                     show_volume=add_volume)
-
+                                                     show_buys=show_buys,
+                                                     show_sells=show_sells,
+                                                     show_indicators=show_indicators,
+                                                     show_positions=show_positions)
             col1, col2 = st.columns(2)
             with col1:
-                st.subheader("🏦 Market")
+                st.subheader("🏦 General")
             with col2:
                 st.subheader("📋 General stats")
             col1, col2, col3, col4 = st.columns(4)
@@ -287,7 +291,7 @@ else:
                                " or portfolio. It compares the excess return earned above a risk-free rate per unit of"
                                " risk taken.")
             st.plotly_chart(backtesting_charts.realized_pnl_over_time_fig, use_container_width=True)
-            # TODO: Improve extra rows handling
+            st.subheader("💱 Market activity")
             st.plotly_chart(backtesting_candles.figure(), use_container_width=True)
 
         except FileNotFoundError:

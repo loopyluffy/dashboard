@@ -24,6 +24,7 @@ def main_page():
             # Page("pages/strategy_performance/app.py", "Strategy Performance", "🚀"),
             # edit strategy performance page @luffy
             Page("loopy_quant/performance/loopy_strategy_performance_app.py", "Strategy Performance", "🚀"),
+            Page("pages/viz_lab/app.py", "Viz Lab", "🥼"),
             Page("pages/db_inspector/app.py", "DB Inspector", "🔍"),
             Page("pages/token_spreads/app.py", "Token Spreads", "🧙"),
             Page("pages/tvl_vs_mcap/app.py", "TVL vs Market Cap", "🦉"),

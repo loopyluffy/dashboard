@@ -146,6 +146,23 @@ class LoopyDBManager(DatabaseManager):
                 contract_multiplier = 10
 
         return contract_multiplier, maker_fee_rate, taker_fee_rate
+    
+    @staticmethod
+    def _get_contract_multiplier_fee_for_each(row: pd.Series):
+        if row is None:
+            return None, None, None
+        
+        contract_multiplier = 1
+        maker_fee_rate = 0.0002
+        taker_fee_rate = 0.0005
+        
+        if "binance_delivery" == row.exchange.lower():
+            if "btc-usd-perp" in row.symbol.lower():
+                contract_multiplier = 100
+            else:
+                contract_multiplier = 10
+
+        return contract_multiplier, maker_fee_rate, taker_fee_rate
 
     def get_market_data(self, start_date=None, end_date=None):
             with self.session_maker() as session:

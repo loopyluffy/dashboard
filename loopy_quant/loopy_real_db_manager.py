@@ -15,7 +15,7 @@ from loopy_quant.loopy_database_manager import LoopyDBManager
 class LoopyRealDBManager(LoopyDBManager):
     # def __init__(self, db_name: str, executors_path: str = "data"):
     def __init__(self, db_name: str, start_date=None, end_date=None):
-
+        
         super().__init__(db_name, start_date, end_date)
         self.strategy = 'loopy_macd_v1'.upper()
 
@@ -29,18 +29,28 @@ class LoopyRealDBManager(LoopyDBManager):
             
         strategy_data = None
 
+        # check date
+        if start_date is not None and end_date is not None and end_date > start_date:
+            self.start_date = start_date
+            self.end_date = end_date
+        else:
+            if self.start_date is None or self.end_date is None:
+                print("Check start & end date!!!")
+                return None
+
         # Use load_data to load tables
         if "postgres" in self.db_name:
             if "real" in self.db_name:
                 order_status = None
                 market_data = load_data(self.get_market_data, self.start_date, self.end_date)
                 orders, trade_fills, position_executors = load_data(self.get_trade_history_datum, self.start_date, self.end_date)
-                strategy_data = LoopyStrategyData(orders, order_status, trade_fills, market_data, position_executors)
+                if orders is not None:
+                    strategy_data = LoopyStrategyData(orders, order_status, trade_fills, market_data, position_executors)
         
         return strategy_data
     
     @property
-    def status(self):
+    def status(self, start_date=None, end_date=None):
         def load_data(table_loader, start_date=None, end_date=None):
             try:
                 return table_loader(start_date, end_date)
@@ -52,6 +62,16 @@ class LoopyRealDBManager(LoopyDBManager):
             return "Correct" if len(data) > 0 else "Error - No records matched"
             
         status = None
+
+        # check date
+        if start_date is not None and end_date is not None and end_date > start_date:
+            self.start_date = start_date
+            self.end_date = end_date
+        else:
+            if self.start_date is None or self.end_date is None:
+                print("Check start & end date!!!")
+                return None
+            
         if "postgres" in self.db_name:
             if "real" in self.db_name:
                 market_data = load_data(self.get_market_data, self.start_date, self.end_date)
@@ -231,6 +251,9 @@ class LoopyRealDBManager(LoopyDBManager):
                 return None
             
         orders = self.get_orders(order_log)
+        if orders is None:
+            return None, None, None
+        
         order_join_pos_df = self._get_order_join_position(order_log, pos_log)
         trade_fills = self.get_trade_fills(order_join_pos_df)
         position_executors = self.get_position_executors(order_join_pos_df)
@@ -245,12 +268,20 @@ class LoopyRealDBManager(LoopyDBManager):
     def get_orders(self, order_log:pd.DataFrame) -> pd.DataFrame:
 
         grouped_df = self._get_orders_group_by_id(order_log)
+        # check the count of rows
+        if grouped_df.shape[0] <= 0:
+            return None
 
         # current binance rule
-        contract_multiplier, maker_fee_rate, taker_fee_rate = self._get_contract_multiplier_fee(grouped_df)
+        # contract_multiplier, maker_fee_rate, taker_fee_rate = self._get_contract_multiplier_fee(grouped_df)
+        # default values
+        contract_multiplier = 1
+        maker_fee_rate = 0.0002
+        taker_fee_rate = 0.0005
 
         all_orders = []
         for row in grouped_df.itertuples():
+            contract_multiplier, maker_fee_rate, taker_fee_rate = self._get_contract_multiplier_fee_for_each(row)
             if contract_multiplier == 1:
                 notional_value = row.price * row.amount
                 base_amount = row.amount
@@ -344,7 +375,11 @@ class LoopyRealDBManager(LoopyDBManager):
     
     def get_trade_fills(self, order_join_pos_df:pd.DataFrame) -> pd.DataFrame:
         # current binance rule
-        contract_multiplier, maker_fee_rate, taker_fee_rate = self._get_contract_multiplier_fee(order_join_pos_df)
+        # contract_multiplier, maker_fee_rate, taker_fee_rate = self._get_contract_multiplier_fee(order_join_pos_df)
+        # default values
+        contract_multiplier = 1
+        maker_fee_rate = 0.0002
+        taker_fee_rate = 0.0005
         
         # Initialize a list to track indices of 'open'/'add' rows until 'close' is encountered
         position_trades = []
@@ -358,6 +393,8 @@ class LoopyRealDBManager(LoopyDBManager):
             # chekc last index @luffy
             # if index == order_join_pos_df.index[-1]:
             #     print('now!!!!!')
+
+            contract_multiplier, maker_fee_rate, taker_fee_rate = self._get_contract_multiplier_fee_for_each(row)
 
             # check position status (open/close)
             if row['position'] == 'close':
@@ -574,7 +611,12 @@ class LoopyRealDBManager(LoopyDBManager):
         position_executors = pd.DataFrame(columns=columns)
         
         # current binance rule
-        contract_multiplier, maker_fee_rate, taker_fee_rate = self._get_contract_multiplier_fee(order_join_pos_df)
+        # contract_multiplier, maker_fee_rate, taker_fee_rate = self._get_contract_multiplier_fee(order_join_pos_df)
+        # default values
+        contract_multiplier = 1
+        maker_fee_rate = 0.0002
+        taker_fee_rate = 0.0005
+
         # Initialize a list to track indices of 'open'/'add' rows until 'close' is encountered
         open_add_indices = []
         position_size = 0
@@ -582,6 +624,9 @@ class LoopyRealDBManager(LoopyDBManager):
         position_status = 'open'
 
         for index, row in order_join_pos_df.iterrows():
+
+            contract_multiplier, maker_fee_rate, taker_fee_rate = self._get_contract_multiplier_fee_for_each(row)
+
             # check position status (open/close)
             if row['position'] == 'close':
                 if position_side is not None and position_side != row.side:

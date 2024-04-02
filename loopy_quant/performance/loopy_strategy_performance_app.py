@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import streamlit as st
 import math
+from datetime import date, timedelta
 # from utils.os_utils import get_databases
 from utils.database_manager import DatabaseManager
 # change package @luffy
@@ -45,8 +46,6 @@ with st.expander("⬆️ Upload"):
         with open(os.path.join(UPLOAD_FOLDER, uploaded_db.name), "wb") as f:
             f.write(file_contents)
         st.success("File uploaded and saved successfully!")
-        # @luffy
-        # selected_db = DatabaseManager(uploaded_db.name)
         selected_db = DatabaseManager(uploaded_db.name)
 
 # Find and select existing databases
@@ -55,38 +54,77 @@ if dbs is not None:
     bot_source = st.selectbox("Choose your database source:", dbs.keys())
     db_names = [x for x in dbs[bot_source]]
     selected_db_name = st.selectbox("Select a database to start:", db_names)
-    # @luffy
-    # selected_db = DatabaseManager(db_name=dbs[bot_source][selected_db_name])
-    # selected_db = LoopyDBManager(db_name=dbs[bot_source][selected_db_name])
-
-    # select time duration @luffy
-    # ------------------------------
     if "postgres" in dbs[bot_source][selected_db_name]:
-        from datetime import date, timedelta
-        # Set default values
-        default_start_date = date.today() - timedelta(days=1) # timedelta(days=30)
-        default_end_date = date.today()
-
-        # Add date input UI components for start and end dates
-        start_date = st.date_input('Start date', value=default_start_date)
-        end_date = st.date_input('End date', value=default_end_date)
-
         if "real" in dbs[bot_source][selected_db_name]:
-            selected_db = LoopyRealDBManager(dbs[bot_source][selected_db_name], start_date, end_date)
+            selected_db = LoopyRealDBManager(dbs[bot_source][selected_db_name])
         else:
-            selected_db = LoopyBacktestingDBManager(dbs[bot_source][selected_db_name], start_date, end_date)
+            selected_db = LoopyBacktestingDBManager(dbs[bot_source][selected_db_name])
     else:
         selected_db = DatabaseManager(db_name=dbs[bot_source][selected_db_name])
-    # ------------------------------
 else:
     st.warning("Ups! No databases were founded. Start uploading one")
     selected_db = None
     st.stop()
 
-# Load strategy data
-strategy_data = selected_db.get_strategy_data()
-main_performance_charts = PerformanceGraphs(strategy_data)
-performance_charts = PerformanceCharts(strategy_data)
+# Load strategy data ---------------------------------------------------------------------------------
+# strategy_data = selected_db.get_strategy_data()
+# main_performance_charts = PerformanceGraphs(strategy_data)
+# performance_charts = PerformanceCharts(strategy_data)
+    
+# Initialize session state variables for start_date and end_date if they don't already exist
+if 'start_date' not in st.session_state:
+    st.session_state['start_date'] = date.today() - timedelta(days=1)
+if 'end_date' not in st.session_state:
+    st.session_state['end_date'] = date.today()
+if 'initial_update' not in st.session_state:
+    st.session_state['initial_update'] = True
+
+# Function to update session state
+# def update_state():
+#     st.session_state['start_date'] = start_date
+#     st.session_state['end_date'] = end_date
+#     if st.session_state['initial_update'] == True:
+#         st.session_state['initial_update'] = False
+#     print("------------- streamlit session state updated -------------------------")
+#     print(st.session_state)
+# Call update_state function on any input change
+# st.button('Update', on_click=update_state)
+
+if selected_db is not None:
+    if "postgres" in dbs[bot_source][selected_db_name]:
+        # Add date input UI components for start and end dates
+        start_date = st.date_input('Start date', value=st.session_state['start_date'])
+        end_date = st.date_input('End date', value=st.session_state['end_date'])
+                                 
+        # add a start button after input updated or first update
+        if st.session_state['initial_update'] == True or (start_date != st.session_state['start_date'] or end_date != st.session_state['end_date']):
+            if st.button('Start a database query'):
+                st.session_state['start_date'] = start_date
+                st.session_state['end_date'] = end_date
+                if st.session_state['initial_update'] == True:
+                    st.session_state['initial_update'] = False
+                print("------------- streamlit session state updated -------------------------")
+                print(st.session_state)
+            else:
+                st.info("💡 click the button to start!")
+                st.stop()
+
+        strategy_data = selected_db.get_strategy_data(start_date=start_date, end_date=end_date)
+        if strategy_data is None:
+            st.info("💡 Ups! No strategy datum were founded. Choose another date")
+            st.stop()
+        else:
+            main_performance_charts = PerformanceGraphs(strategy_data)
+            performance_charts = PerformanceCharts(strategy_data)
+    else:
+        strategy_data = selected_db.get_strategy_data()
+        if strategy_data is None:
+            st.info("💡 Ups! No strategy datum were founded. Choose another date")
+            st.stop()
+        else:
+            main_performance_charts = PerformanceGraphs(strategy_data)
+            performance_charts = PerformanceCharts(strategy_data)
+# --------------------------------------------------------------------------------------------------------
 
 # Strategy summary section
 st.divider()
@@ -110,7 +148,8 @@ else:
         else:
             selected_exchange = selection["Exchange"].values[0]
             selected_trading_pair = selection["Trading Pair"].values[0]
-
+            # update st.session_state:
+            # st.session_state['selected_exchange'] = selected_exchange
 
 # Explore Trading Pair section
 st.divider()

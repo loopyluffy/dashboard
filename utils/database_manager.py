@@ -2,7 +2,9 @@ import os
 import streamlit as st
 import json
 import pandas as pd
-from hummingbot.smart_components.executors.position_executor.data_types import CloseType, TradeType
+# from hummingbot.smart_components.executors.position_executor.data_types import CloseType, TradeType
+from hummingbot.core.data_type.common import TradeType
+from hummingbot.smart_components.models.executors import CloseType
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 

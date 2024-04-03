@@ -5,11 +5,10 @@ import inspect
 import os
 
 import pandas as pd
-from hummingbot.smart_components.strategy_frameworks.directional_trading import DirectionalTradingControllerBase, DirectionalTradingControllerConfigBase
+from hummingbot.smart_components.controllers.directional_trading_controller_base import DirectionalTradingControllerBase, DirectionalTradingControllerConfigBase
 
 import yaml
-from hummingbot.smart_components.strategy_frameworks.market_making import MarketMakingControllerBase, \
-    MarketMakingControllerConfigBase
+from hummingbot.smart_components.controllers.market_making_controller_base import MarketMakingControllerBase, MarketMakingControllerConfigBase
 
 
 def remove_files_from_directory(directory: str):

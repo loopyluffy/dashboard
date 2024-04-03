@@ -13,19 +13,10 @@
                 "run",
                 "main.py"
             ],
-            "console": "externalTerminal",
-            // "console": "integratedTerminal",
+            "console": "integratedTerminal",
             "justMyCode": true,
             "env": {
-                // "PYTHONPATH": "${workspaceRoot}"
-                // "PYTHONPATH": "/Users/wm-il000289/Desktop/repository/hummingbot"
-                "PYTHONPATH": "${userHome}/Desktop/repository/hummingbot",
-                "DB_REAL_PATH": "loopystore02.cafe24.com",
-                "DB_BACKTESTING_PATH": "localhost",
-                "DB_PATH": "localhost",
-                "DB_NAME": "postgres",
-                "DB_USERNAME": "loopy",
-                "DB_PASSWORD": "loopy1230"
+                "PYTHONPATH": "${workspaceRoot}"
             }
         }
     ]

@@ -14,8 +14,9 @@ from loopy_quant.performance.loopy_performance_candles import LoopyPerformanceCa
 
 from utils.graphs import PerformanceGraphs
 from data_viz.performance.performance_charts import PerformanceCharts
-from data_viz.performance.performance_candles import PerformanceCandles
+# from data_viz.performance.performance_candles import PerformanceCandles
 from utils.st_utils import initialize_st_page, download_csv_button, style_metric_cards, db_error_message
+import data_viz.utils as utils
 
 
 initialize_st_page(title="Strategy Performance", icon="🚀")
@@ -66,11 +67,7 @@ else:
     selected_db = None
     st.stop()
 
-# Load strategy data ---------------------------------------------------------------------------------
-# strategy_data = selected_db.get_strategy_data()
-# main_performance_charts = PerformanceGraphs(strategy_data)
-# performance_charts = PerformanceCharts(strategy_data)
-    
+# Load strategy data ---------------------------------------------------------------------------------    
 # Initialize session state variables for start_date and end_date if they don't already exist
 if 'start_date' not in st.session_state:
     st.session_state['start_date'] = date.today() - timedelta(days=1)
@@ -114,6 +111,7 @@ if selected_db is not None:
             st.info("💡 Ups! No strategy datum were founded. Choose another date")
             st.stop()
         else:
+            executor_version = "v2" if strategy_data.executors is not None and not strategy_data.executors.empty else "v1"
             main_performance_charts = PerformanceGraphs(strategy_data)
             performance_charts = PerformanceCharts(strategy_data)
     else:
@@ -122,6 +120,7 @@ if selected_db is not None:
             st.info("💡 Ups! No strategy datum were founded. Choose another date")
             st.stop()
         else:
+            executor_version = "v2" if strategy_data.executors is not None and not strategy_data.executors.empty else "v1"
             main_performance_charts = PerformanceGraphs(strategy_data)
             performance_charts = PerformanceCharts(strategy_data)
 # --------------------------------------------------------------------------------------------------------
@@ -216,10 +215,115 @@ st.subheader("💱 Market activity")
 if "Error" in selected_db.status["market_data"] or time_filtered_strategy_data.market_data.empty:
     st.warning("Market data is not available so the candles graph is not going to be rendered."
                "Make sure that you are using the latest version of Hummingbot and market data recorder activated.")
+# else:
+#     col1, col2 = st.columns([3, 1])
+#     with col2:
+#         # Set custom configs
+#         interval = st.selectbox("Candles Interval:", intervals.keys(), index=2)
+#         rows_per_page = st.number_input("Candles per Page", value=1500, min_value=1, max_value=5000)
+
+#         # Add pagination
+#         total_rows = len(time_filtered_strategy_data.get_market_data_resampled(interval=f"{intervals[interval]}S"))
+#         total_pages = math.ceil(total_rows / rows_per_page)
+#         if total_pages > 1:
+#             selected_page = st.select_slider("Select page", list(range(total_pages)), total_pages - 1, key="page_slider")
+#         else:
+#             selected_page = 0
+#         start_idx = selected_page * rows_per_page
+#         end_idx = start_idx + rows_per_page
+#         candles_df = time_filtered_strategy_data.get_market_data_resampled(interval=f"{intervals[interval]}S").iloc[start_idx:end_idx]
+#         start_time_page = candles_df.index.min()
+#         end_time_page = candles_df.index.max()
+
+#         # Get Page Filtered Strategy Data
+#         page_filtered_strategy_data = single_market_strategy_data.get_filtered_strategy_data(start_time_page, end_time_page)
+#         page_performance_charts = PerformanceGraphs(page_filtered_strategy_data)
+#         page_charts = PerformanceCharts(page_filtered_strategy_data)
+#         # page_candles = PerformanceCandles(source=page_filtered_strategy_data,
+#         #                                   candles_df=candles_df,
+#         #                                   extra_rows=2)
+#         # add extra row for indicator @luffy
+#         page_candles = LoopyPerformanceCandles(source=page_filtered_strategy_data,
+#                                                candles_df=candles_df,
+#                                                extra_rows=3)
+#         # candles_chart = page_performance_charts.candles_graph(candles_df, interval=interval)
+#         # Show auxiliary charts
+#         intraday_tab, returns_tab, returns_data_tab, positions_tab, other_metrics_tab = st.tabs(["Intraday", "Returns", "Returns Data", "Positions", "Other Metrics"])
+#         with intraday_tab:
+#             st.plotly_chart(page_charts.intraday_performance_fig, use_container_width=True)
+#         with returns_tab:
+#             st.plotly_chart(page_charts.returns_distribution_fig, use_container_width=True)
+#         with returns_data_tab:
+#             raw_returns_data = time_filtered_strategy_data.trade_fill[["timestamp", "gross_pnl", "trade_fee", "realized_pnl"]].dropna(subset="realized_pnl")
+#             st.dataframe(raw_returns_data,
+#                          use_container_width=True,
+#                          hide_index=True,
+#                          height=(min(len(time_filtered_strategy_data.trade_fill) * 39, 600)))
+#             download_csv_button(raw_returns_data, "raw_returns_data", "download-raw-returns")
+#         with positions_tab:
+#             if page_charts.positions_summary_sunburst_fig is not None:
+#                 st.plotly_chart(page_charts.positions_summary_sunburst_fig, use_container_width=True)
+#             else:
+#                 st.info("No position executor data found.")
+#         with other_metrics_tab:
+#             col3, col4 = st.columns(2)
+#             with col3:
+#                 st.metric(label=f'Trade PNL {time_filtered_strategy_data.quote_asset}',
+#                           value=round(time_filtered_strategy_data.trade_pnl_quote, 2),
+#                           help="The overall profit or loss achieved in quote asset, without fees.")
+#                 st.metric(label='Total Buy Trades', value=time_filtered_strategy_data.total_buy_trades,
+#                           help="The total number of buy trades.")
+#                 st.metric(label='Total Buy Trades Amount',
+#                           value=round(time_filtered_strategy_data.total_buy_amount, 2),
+#                           help="The total amount of base asset bought.")
+#                 st.metric(label='Average Buy Price', value=round(time_filtered_strategy_data.average_buy_price, 4),
+#                           help="The average price of the base asset bought.")
+
+#             with col4:
+#                 st.metric(label=f'Fees {time_filtered_strategy_data.quote_asset}',
+#                           value=round(time_filtered_strategy_data.cum_fees_in_quote, 2),
+#                           help="The overall fees paid in quote asset.")
+#                 st.metric(label='Total Sell Trades', value=time_filtered_strategy_data.total_sell_trades,
+#                           help="The total number of sell trades.")
+#                 st.metric(label='Total Sell Trades Amount',
+#                           value=round(time_filtered_strategy_data.total_sell_amount, 2),
+#                           help="The total amount of base asset sold.")
+#                 st.metric(label='Average Sell Price', value=round(time_filtered_strategy_data.average_sell_price, 4),
+#                           help="The average price of the base asset sold.")
+#     with col1:
+#         st.plotly_chart(page_candles.figure(), use_container_width=True)
 else:
+    # Visibility options
+    with st.expander("Visual Options"):
+        col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
+        with col1:
+            show_buys = st.checkbox("Buys", value=True)
+            if executor_version == "v2":
+                show_dca_prices = st.checkbox("DCA Prices", value=False)
+            else:
+                show_dca_prices = False
+                pass
+        with col2:
+            show_sells = st.checkbox("Sells", value=True)
+            show_annotations = st.checkbox("Annotations", value=True)
+        with col3:
+            show_positions = st.checkbox("Positions", value=True)
+        with col4:
+            show_pnl = st.checkbox("PNL", value=True)
+        with col5:
+            show_quote_inventory_change = st.checkbox("Quote Inventory Change", value=True)
+        with col6:
+            show_indicators = st.checkbox("Indicators", value=True)
+        with col7:
+            main_height = st.slider("Main Row Height", min_value=0.1, max_value=1.0, value=0.7, step=0.1)
     col1, col2 = st.columns([3, 1])
     with col2:
+        st.markdown("### Candles config")
         # Set custom configs
+        if show_indicators:
+            indicators_config_path = st.selectbox("Indicators path", utils.get_indicators_config_paths())
+        else:
+            indicators_config_path = None
         interval = st.selectbox("Candles Interval:", intervals.keys(), index=2)
         rows_per_page = st.number_input("Candles per Page", value=1500, min_value=1, max_value=5000)
 
@@ -240,13 +344,6 @@ else:
         page_filtered_strategy_data = single_market_strategy_data.get_filtered_strategy_data(start_time_page, end_time_page)
         page_performance_charts = PerformanceGraphs(page_filtered_strategy_data)
         page_charts = PerformanceCharts(page_filtered_strategy_data)
-        # page_candles = PerformanceCandles(source=page_filtered_strategy_data,
-        #                                   candles_df=candles_df,
-        #                                   extra_rows=2)
-        # add extra row for indicator @luffy
-        page_candles = LoopyPerformanceCandles(source=page_filtered_strategy_data,
-                                               candles_df=candles_df,
-                                               extra_rows=3)
         # candles_chart = page_performance_charts.candles_graph(candles_df, interval=interval)
         # Show auxiliary charts
         intraday_tab, returns_tab, returns_data_tab, positions_tab, other_metrics_tab = st.tabs(["Intraday", "Returns", "Returns Data", "Positions", "Other Metrics"])
@@ -292,6 +389,20 @@ else:
                 st.metric(label='Average Sell Price', value=round(time_filtered_strategy_data.average_sell_price, 4),
                           help="The average price of the base asset sold.")
     with col1:
+        page_candles = LoopyPerformanceCandles(source=page_filtered_strategy_data,
+                                        #   indicators_config=utils.load_indicators_config(indicators_config_path) if show_indicators else None,
+                                        #   indicators_config=utils.example_case,
+                                          candles_df=candles_df,
+                                          show_dca_prices=show_dca_prices,
+                                          show_positions=show_positions,
+                                          show_buys=show_buys,
+                                          show_sells=show_sells,
+                                          show_pnl=show_pnl,
+                                          show_quote_inventory_change=show_quote_inventory_change,
+                                          show_indicators=show_indicators,
+                                          main_height=main_height,
+                                          executor_version=executor_version,
+                                          show_annotations=show_annotations)
         st.plotly_chart(page_candles.figure(), use_container_width=True)
 
 # Tables section
@@ -314,3 +425,7 @@ if strategy_data.position_executor is not None and not strategy_data.position_ex
     with st.expander("🤖 Position executor"):
         st.write(strategy_data.position_executor)
         download_csv_button(strategy_data.position_executor, "position_executor", "download-position-executor")
+if strategy_data.executors is not None and not strategy_data.executors.empty:
+    with st.expander("🤖 Executors"):
+        st.write(strategy_data.executors)
+        download_csv_button(strategy_data.executors, "executors", "download-executors")

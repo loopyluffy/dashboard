@@ -1,7 +1,9 @@
 from hummingbot.core.data_type.common import PositionMode, TradeType, OrderType
 from hummingbot.data_feed.candles_feed.candles_factory import CandlesConfig
-from hummingbot.smart_components.strategy_frameworks.data_types import OrderLevel, TripleBarrierConf
-from hummingbot.smart_components.strategy_frameworks.directional_trading import DirectionalTradingBacktestingEngine
+from hummingbot.smart_components.order_level_distributions.order_level_builder import OrderLevel
+from hummingbot.smart_components.executors.position_executor.data_types import TripleBarrierConfig
+# from hummingbot.smart_components.strategy_frameworks.directional_trading import DirectionalTradingBacktestingEngine
+from hummingbot.smart_components.backtesting.backtesting_engine_base import BacktestingEngineBase
 from hummingbot.smart_components.utils.config_encoder_decoder import ConfigEncoderDecoder
 
 import constants
@@ -165,7 +167,7 @@ else:
                         with c32:
                             cooldown_time = st.number_input("Cooldown time", value=order_level["cooldown_time"],
                                                             key=f"{order_level['level']}_{order_level['side'].name}_cd")
-                        triple_barrier_conf = TripleBarrierConf(stop_loss=Decimal(stop_loss), take_profit=Decimal(take_profit),
+                        triple_barrier_conf = TripleBarrierConfig(stop_loss=Decimal(stop_loss), take_profit=Decimal(take_profit),
                                                                 time_limit=time_limit,
                                                                 trailing_stop_activation_price_delta=Decimal(ts_ap),
                                                                 trailing_stop_trailing_delta=Decimal(ts_td),
@@ -214,7 +216,7 @@ else:
         run_backtesting_button = st.button("⚙️Run Backtesting!")
     if run_backtesting_button:
         try:
-            engine = DirectionalTradingBacktestingEngine(controller=controller)
+            engine = BacktestingEngineBase(controller=controller)
             engine.load_controller_data("./data/candles")
             backtesting_results = engine.run_backtesting(initial_portfolio_usd=initial_portfolio_usd,
                                                          trade_cost=trade_cost,

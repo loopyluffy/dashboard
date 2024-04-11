@@ -4,8 +4,8 @@ import pandas as pd
 from pydantic import Field
 
 from hummingbot.smart_components.executors.position_executor.position_executor import PositionExecutor
-from hummingbot.smart_components.strategy_frameworks.data_types import OrderLevel
-from hummingbot.smart_components.strategy_frameworks.directional_trading.directional_trading_controller_base import (
+from hummingbot.smart_components.order_level_distributions.order_level_builder import OrderLevel
+from hummingbot.smart_components.controllers.directional_trading_controller_base import (
     DirectionalTradingControllerBase,
     DirectionalTradingControllerConfigBase,
 )

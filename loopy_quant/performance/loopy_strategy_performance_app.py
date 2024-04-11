@@ -215,83 +215,6 @@ st.subheader("💱 Market activity")
 if "Error" in selected_db.status["market_data"] or time_filtered_strategy_data.market_data.empty:
     st.warning("Market data is not available so the candles graph is not going to be rendered."
                "Make sure that you are using the latest version of Hummingbot and market data recorder activated.")
-# else:
-#     col1, col2 = st.columns([3, 1])
-#     with col2:
-#         # Set custom configs
-#         interval = st.selectbox("Candles Interval:", intervals.keys(), index=2)
-#         rows_per_page = st.number_input("Candles per Page", value=1500, min_value=1, max_value=5000)
-
-#         # Add pagination
-#         total_rows = len(time_filtered_strategy_data.get_market_data_resampled(interval=f"{intervals[interval]}S"))
-#         total_pages = math.ceil(total_rows / rows_per_page)
-#         if total_pages > 1:
-#             selected_page = st.select_slider("Select page", list(range(total_pages)), total_pages - 1, key="page_slider")
-#         else:
-#             selected_page = 0
-#         start_idx = selected_page * rows_per_page
-#         end_idx = start_idx + rows_per_page
-#         candles_df = time_filtered_strategy_data.get_market_data_resampled(interval=f"{intervals[interval]}S").iloc[start_idx:end_idx]
-#         start_time_page = candles_df.index.min()
-#         end_time_page = candles_df.index.max()
-
-#         # Get Page Filtered Strategy Data
-#         page_filtered_strategy_data = single_market_strategy_data.get_filtered_strategy_data(start_time_page, end_time_page)
-#         page_performance_charts = PerformanceGraphs(page_filtered_strategy_data)
-#         page_charts = PerformanceCharts(page_filtered_strategy_data)
-#         # page_candles = PerformanceCandles(source=page_filtered_strategy_data,
-#         #                                   candles_df=candles_df,
-#         #                                   extra_rows=2)
-#         # add extra row for indicator @luffy
-#         page_candles = LoopyPerformanceCandles(source=page_filtered_strategy_data,
-#                                                candles_df=candles_df,
-#                                                extra_rows=3)
-#         # candles_chart = page_performance_charts.candles_graph(candles_df, interval=interval)
-#         # Show auxiliary charts
-#         intraday_tab, returns_tab, returns_data_tab, positions_tab, other_metrics_tab = st.tabs(["Intraday", "Returns", "Returns Data", "Positions", "Other Metrics"])
-#         with intraday_tab:
-#             st.plotly_chart(page_charts.intraday_performance_fig, use_container_width=True)
-#         with returns_tab:
-#             st.plotly_chart(page_charts.returns_distribution_fig, use_container_width=True)
-#         with returns_data_tab:
-#             raw_returns_data = time_filtered_strategy_data.trade_fill[["timestamp", "gross_pnl", "trade_fee", "realized_pnl"]].dropna(subset="realized_pnl")
-#             st.dataframe(raw_returns_data,
-#                          use_container_width=True,
-#                          hide_index=True,
-#                          height=(min(len(time_filtered_strategy_data.trade_fill) * 39, 600)))
-#             download_csv_button(raw_returns_data, "raw_returns_data", "download-raw-returns")
-#         with positions_tab:
-#             if page_charts.positions_summary_sunburst_fig is not None:
-#                 st.plotly_chart(page_charts.positions_summary_sunburst_fig, use_container_width=True)
-#             else:
-#                 st.info("No position executor data found.")
-#         with other_metrics_tab:
-#             col3, col4 = st.columns(2)
-#             with col3:
-#                 st.metric(label=f'Trade PNL {time_filtered_strategy_data.quote_asset}',
-#                           value=round(time_filtered_strategy_data.trade_pnl_quote, 2),
-#                           help="The overall profit or loss achieved in quote asset, without fees.")
-#                 st.metric(label='Total Buy Trades', value=time_filtered_strategy_data.total_buy_trades,
-#                           help="The total number of buy trades.")
-#                 st.metric(label='Total Buy Trades Amount',
-#                           value=round(time_filtered_strategy_data.total_buy_amount, 2),
-#                           help="The total amount of base asset bought.")
-#                 st.metric(label='Average Buy Price', value=round(time_filtered_strategy_data.average_buy_price, 4),
-#                           help="The average price of the base asset bought.")
-
-#             with col4:
-#                 st.metric(label=f'Fees {time_filtered_strategy_data.quote_asset}',
-#                           value=round(time_filtered_strategy_data.cum_fees_in_quote, 2),
-#                           help="The overall fees paid in quote asset.")
-#                 st.metric(label='Total Sell Trades', value=time_filtered_strategy_data.total_sell_trades,
-#                           help="The total number of sell trades.")
-#                 st.metric(label='Total Sell Trades Amount',
-#                           value=round(time_filtered_strategy_data.total_sell_amount, 2),
-#                           help="The total amount of base asset sold.")
-#                 st.metric(label='Average Sell Price', value=round(time_filtered_strategy_data.average_sell_price, 4),
-#                           help="The average price of the base asset sold.")
-#     with col1:
-#         st.plotly_chart(page_candles.figure(), use_container_width=True)
 else:
     # Visibility options
     with st.expander("Visual Options"):
@@ -311,11 +234,11 @@ else:
         with col4:
             show_pnl = st.checkbox("PNL", value=True)
         with col5:
-            show_quote_inventory_change = st.checkbox("Quote Inventory Change", value=True)
+            show_quote_inventory_change = st.checkbox("Quote Inventory Change", value=False)
         with col6:
             show_indicators = st.checkbox("Indicators", value=True)
         with col7:
-            main_height = st.slider("Main Row Height", min_value=0.1, max_value=1.0, value=0.7, step=0.1)
+            main_height = st.slider("Main Row Height", min_value=0.1, max_value=1.0, value=0.5, step=0.1)
     col1, col2 = st.columns([3, 1])
     with col2:
         st.markdown("### Candles config")

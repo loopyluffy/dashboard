@@ -4,8 +4,12 @@ from typing import List
 from data_viz.dtypes import IndicatorConfig
 from quants_lab.strategy.strategy_analysis import StrategyAnalysis
 
+# loopy customizing @luffy
+from loopy_quant.loopy_candles import LoopyCandles
 
-class BacktestingCandles(CandlesBase):
+
+# class BacktestingCandles(CandlesBase):
+class BacktestingCandles(LoopyCandles):
     def __init__(self,
                  strategy_analysis: StrategyAnalysis,
                  indicators_config: List[IndicatorConfig] = None,

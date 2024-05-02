@@ -10,16 +10,17 @@ from loopy_quant.loopy_database_manager import get_databases
 from loopy_quant.loopy_real_db_manager import LoopyRealDBManager
 from loopy_quant.loopy_backtesting_db_manager import LoopyBacktestingDBManager
 # from utils.loopy_data_manipulation import LoopyStrategyData
-from loopy_quant.performance.loopy_performance_candles import LoopyPerformanceCandles
+from loopy_quant.loopy_performance_candles import LoopyPerformanceCandles
 
 from utils.graphs import PerformanceGraphs
 from data_viz.performance.performance_charts import PerformanceCharts
 # from data_viz.performance.performance_candles import PerformanceCandles
 from utils.st_utils import initialize_st_page, download_csv_button, style_metric_cards, db_error_message
 import data_viz.utils as utils
+# from data_viz.dtypes import IndicatorConfig
 
 
-initialize_st_page(title="Strategy Performance", icon="🚀")
+initialize_st_page(title="Loopy Strategy Performance", icon="🚀")
 style_metric_cards()
 
 UPLOAD_FOLDER = "data"
@@ -251,7 +252,8 @@ else:
         rows_per_page = st.number_input("Candles per Page", value=1500, min_value=1, max_value=5000)
 
         # Add pagination
-        total_rows = len(time_filtered_strategy_data.get_market_data_resampled(interval=f"{intervals[interval]}S"))
+        # total_rows = len(time_filtered_strategy_data.get_market_data_resampled(interval=f"{intervals[interval]}S"))
+        total_rows = len(time_filtered_strategy_data.get_candles_resampled(intervals[interval]))
         total_pages = math.ceil(total_rows / rows_per_page)
         if total_pages > 1:
             selected_page = st.select_slider("Select page", list(range(total_pages)), total_pages - 1, key="page_slider")
@@ -259,7 +261,8 @@ else:
             selected_page = 0
         start_idx = selected_page * rows_per_page
         end_idx = start_idx + rows_per_page
-        candles_df = time_filtered_strategy_data.get_market_data_resampled(interval=f"{intervals[interval]}S").iloc[start_idx:end_idx]
+        # candles_df = time_filtered_strategy_data.get_market_data_resampled(interval=f"{intervals[interval]}S").iloc[start_idx:end_idx]
+        candles_df = time_filtered_strategy_data.get_candles_resampled(intervals[interval]).iloc[start_idx:end_idx]
         start_time_page = candles_df.index.min()
         end_time_page = candles_df.index.max()
 
@@ -312,20 +315,36 @@ else:
                 st.metric(label='Average Sell Price', value=round(time_filtered_strategy_data.average_sell_price, 4),
                           help="The average price of the base asset sold.")
     with col1:
-        page_candles = LoopyPerformanceCandles(source=page_filtered_strategy_data,
-                                        #   indicators_config=utils.load_indicators_config(indicators_config_path) if show_indicators else None,
-                                        #   indicators_config=utils.example_case,
-                                          candles_df=candles_df,
-                                          show_dca_prices=show_dca_prices,
-                                          show_positions=show_positions,
-                                          show_buys=show_buys,
-                                          show_sells=show_sells,
-                                          show_pnl=show_pnl,
-                                          show_quote_inventory_change=show_quote_inventory_change,
-                                          show_indicators=show_indicators,
-                                          main_height=main_height,
-                                          executor_version=executor_version,
-                                          show_annotations=show_annotations)
+        # configs = [
+        #     IndicatorConfig(visible=True, title="bbands", row=1, col=1, color="blue", length=20, std=2.0),
+        #     # IndicatorConfig(visible=True, title="ema", row=1, col=1, color="yellow", length=20),
+        #     # IndicatorConfig(visible=True, title="ema", row=1, col=1, color="yellow", length=40),
+        #     # IndicatorConfig(visible=True, title="ema", row=1, col=1, color="yellow", length=60),
+        #     # IndicatorConfig(visible=True, title="ema", row=1, col=1, color="yellow", length=80),
+        #     IndicatorConfig(visible=True, title="macd", row=2, col=1, color="red", fast=12, slow=26, signal=9),
+        #     # IndicatorConfig(visible=True, title="macd", row=2, col=1, color="red", fast=9, slow=26, signal=13),
+        #     IndicatorConfig(visible=True, title="macd_mc", row=2, col=1, color="blue", length=9),
+        #     IndicatorConfig(visible=True, title="atr", row=4, col=1, color="red", length=9),
+        #     # IndicatorConfig(visible=True, title="rsi", row=3, col=1, color="green", length=14)
+        # ]
+        page_candles = LoopyPerformanceCandles(
+        # page_candles = PerformanceCandles(
+                            source=page_filtered_strategy_data,
+                            # indicators_config=utils.load_indicators_config(indicators_config_path) if show_indicators else None,
+                            # indicators_config=utils.example_case,
+                            # indicators_config=configs,
+                            candles_df=candles_df,
+                            show_dca_prices=show_dca_prices,
+                            show_positions=show_positions,
+                            show_buys=show_buys,
+                            show_sells=show_sells,
+                            show_pnl=show_pnl,
+                            show_quote_inventory_change=show_quote_inventory_change,
+                            show_indicators=show_indicators,
+                            main_height=main_height,
+                            executor_version=executor_version,
+                            show_annotations=show_annotations
+                        )
         st.plotly_chart(page_candles.figure(), use_container_width=True)
 
 # Tables section
@@ -333,22 +352,22 @@ st.divider()
 st.subheader("Tables")
 with st.expander("💵 Trades"):
     st.write(strategy_data.trade_fill)
-    download_csv_button(strategy_data.trade_fill, "trade_fill", "download-trades")
+    # download_csv_button(strategy_data.trade_fill, "trade_fill", "download-trades")
 with st.expander("📩 Orders"):
     st.write(strategy_data.orders)
-    download_csv_button(strategy_data.orders, "orders", "download-orders")
+    # download_csv_button(strategy_data.orders, "orders", "download-orders")
 with st.expander("⌕ Order Status"):
     st.write(strategy_data.order_status)
-    download_csv_button(strategy_data.order_status, "order_status", "download-order-status")
+    # download_csv_button(strategy_data.order_status, "order_status", "download-order-status")
 if not strategy_data.market_data.empty:
     with st.expander("💱 Market Data"):
         st.write(strategy_data.market_data)
-        download_csv_button(strategy_data.market_data, "market_data", "download-market-data")
+        # download_csv_button(strategy_data.market_data, "market_data", "download-market-data")
 if strategy_data.position_executor is not None and not strategy_data.position_executor.empty:
     with st.expander("🤖 Position executor"):
         st.write(strategy_data.position_executor)
-        download_csv_button(strategy_data.position_executor, "position_executor", "download-position-executor")
+        # download_csv_button(strategy_data.position_executor, "position_executor", "download-position-executor")
 if strategy_data.executors is not None and not strategy_data.executors.empty:
     with st.expander("🤖 Executors"):
         st.write(strategy_data.executors)
-        download_csv_button(strategy_data.executors, "executors", "download-executors")
+        # download_csv_button(strategy_data.executors, "executors", "download-executors")

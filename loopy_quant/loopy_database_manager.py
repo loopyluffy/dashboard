@@ -28,20 +28,25 @@ def get_bots_data_paths():
     return data_sources
 
 
-def get_databases():
+def get_databases(sqlite=False, backtesting=False):
     databases = {}
-    bots_data_paths = get_bots_data_paths()
-    for source_name, source_path in bots_data_paths.items():
-        sqlite_files = {}
-        for db_name in os.listdir(source_path):
-            if db_name.endswith(".sqlite"):
-                sqlite_files[db_name] = os.path.join(source_path, db_name)
-        databases[source_name] = sqlite_files
+    if sqlite == True:
+        bots_data_paths = get_bots_data_paths()
+        for source_name, source_path in bots_data_paths.items():
+            sqlite_files = {}
+            for db_name in os.listdir(source_path):
+                if db_name.endswith(".sqlite"):
+                    sqlite_files[db_name] = os.path.join(source_path, db_name)
+            databases[source_name] = sqlite_files
 
     # external database added in list @luffy
     # db_name = os.environ['DB_NAME']
     # databases["External / Databases"] = {"Postgresql": db_name}
-    databases["External / Databases"] = {"Postgresql(Real)": "postgres_real", "Postgresql(Backtesting)": "postgres_backtesting"}
+    # databases["External / Databases"] = {"Postgresql(Real)": "postgres_real", "Postgresql(Backtesting)": "postgres_backtesting"}
+    if backtesting == False:
+        databases["External / Databases"] = {"Postgresql(Real)": "postgres_real"}
+    else:
+        databases["External / Databases"] = {"Postgresql(Backtesting)": "postgres_backtesting"}
 
     if len(databases) > 0:
         return {key: value for key, value in databases.items() if value}
@@ -56,6 +61,10 @@ class LoopyDBManager(DatabaseManager):
         self.start_date = start_date
         self.end_date = end_date
         self.engine = None
+        self.session_maker = None
+
+        self.candle_engine = None
+        self.candle_session_maker = None
 
         if "postgres" in db_name:
             if "backtesting" in db_name:
@@ -79,6 +88,46 @@ class LoopyDBManager(DatabaseManager):
             except Exception as e:
                 print(e)
 
+        if self.session_maker is not None:
+            try:
+                db_candle_host = os.environ['DB_CANDLE_PATH']
+                db_candle_path = f"{db_engine}://{db_username}:{db_password}@{db_candle_host}:{db_port}/{db_name}"
+                self.db_candle_path = db_candle_path
+                self.candle_engine = create_engine(db_candle_path)
+                self.candle_session_maker = sessionmaker(bind=self.candle_engine)
+            except Exception as e:
+                print(e)
+
+    @staticmethod
+    def _get_candle_info_query(exchange=None, trading_pair=None, start_date=None, end_date=None):
+        # assign time duration forcely to test a external connection @luffy
+        # ------------------------------------------
+        # start_date = '2023-02-01'
+        # end_date = '2023-02-10'
+        # start_date = pd.Timestamp(start_date)
+        # start_date = start_date.timestamp() # convert to unix timestamp in seconds
+        # end_date = pd.Timestamp(end_date)
+        # end_date = end_date.timestamp() # convert to unix timestamp in seconds
+        # ------------------------------------------
+        
+        query = "SELECT * FROM view_5m_candle"
+        conditions = []
+        # if start_date:
+        #     conditions.append(f"timestamp >= '{start_date * 1e6}'")
+        # if end_date:
+        #     conditions.append(f"timestamp <= '{end_date * 1e6}'")
+        if exchange:
+            conditions.append(f"exchange = '{exchange}'")
+        if trading_pair:
+            conditions.append(f"symbol = '{trading_pair}'")
+        if start_date:
+            conditions.append(f"date >= '{start_date}'")
+        if end_date:
+            conditions.append(f"date <= '{end_date}'")
+        if conditions:
+            query += f" WHERE {' AND '.join(conditions)}"
+        return query
+    
     @staticmethod
     def _get_market_info_query(start_date=None, end_date=None):
         # assign time duration forcely to test a external connection @luffy
@@ -163,6 +212,38 @@ class LoopyDBManager(DatabaseManager):
                 contract_multiplier = 10
 
         return contract_multiplier, maker_fee_rate, taker_fee_rate
+    
+    def get_candle_data(self, exchange=None, trading_pair=None, start_date=None, end_date=None):
+        with self.candle_session_maker() as session:
+            query = self._get_candle_info_query(exchange=exchange, trading_pair=trading_pair, start_date=start_date, end_date=end_date)
+            try:
+                candle_info = pd.read_sql_query(text(query), session.connection())
+            except Exception as e:
+                print(e)
+                return None
+            
+            columns = ['timestamp','exchange','trading_pair','open','high','low','close','volume','quote_asset_volume']
+            candle_data = pd.DataFrame(columns=columns)
+            # market_data["timestamp"] = pd.to_datetime(market_data["timestamp"] / 1e6, unit="ms")
+            candle_data["timestamp"] = candle_info["date"]
+            candle_data["exchange"] = candle_info["exchange"]
+            candle_data["trading_pair"] = candle_info["symbol"]
+            candle_data["open"] = candle_info["open_price"]
+            candle_data["high"] = candle_info["high_price"]
+            candle_data["low"] = candle_info["low_price"]
+            candle_data["close"] = candle_info["close_price"]
+            candle_data["volume"] = candle_info["volume"]
+            candle_data["quote_asset_volumne"] = candle_info["value"]
+
+            # candle_data.set_index("timestamp", inplace=True)
+            candle_data.set_index("timestamp")
+
+            # print("-last candle_data-----------")
+            # print(candle_data.tail(1))
+            # print(candle_data.iloc[0])
+            # print(candle_data.iloc[-1]["timestamp"])
+
+        return candle_data 
 
     def get_market_data(self, start_date=None, end_date=None):
             with self.session_maker() as session:

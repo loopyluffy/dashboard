@@ -1,29 +1,31 @@
 import datetime
-# from dataclasses import dataclass
+from dataclasses import dataclass
 import pandas as pd
+# from pandas.tseries.frequencies import to_offset
 import numpy as np
 
 from utils.data_manipulation import StrategyData, SingleMarketStrategyData
 
+# intervals = {
+#             "1m": 60,
+#             "3m": 60 * 3,
+#             "5m": 60 * 5,
+#             "15m": 60 * 15,
+#             "30m": 60 * 30,
+#             "1h": 60 * 60,
+#             "6h": 60 * 60 * 6,
+#             "1d": 60 * 60 * 24,
+#         }
 
+@dataclass
 class LoopyStrategyData(StrategyData):
     # orders: pd.DataFrame
     # order_status: pd.DataFrame
     # trade_fill: pd.DataFrame
     # market_data: pd.DataFrame = None
     # position_executor: pd.DataFrame = None
-
-    # def __init__(self, trade_fill: pd.DataFrame, market_data: pd.DataFrame, position_executor: pd.DataFrame):
-    #     super().__init__(None, None, trade_fill, market_data, position_executor)
-
-    # @property
-    # def strategy_summary(self):
-    #     if self.trade_fill is not None:
-    #     # test @luffy
-    #     # if self.position_executor is not None:
-    #         return self.get_strategy_summary()
-    #     else:
-    #         return None
+    # executors: pd.DataFrame = None
+    candles_df: pd.DataFrame = None
 
     # def get_strategy_summary(self):
     
@@ -31,6 +33,10 @@ class LoopyStrategyData(StrategyData):
         if self.trade_fill is None:
             return None
         
+        if self.candles_df is not None:
+            candles_df = self.candles_df[(self.candles_df["exchange"] == exchange) & (self.candles_df["trading_pair"] == trading_pair)].copy()
+            # candles_df.set_index("timestamp", inplace=True)
+
         if self.orders is not None:
             orders = self.orders[(self.orders["market"] == exchange) & (self.orders["symbol"] == trading_pair)].copy()
             trade_fill = self.trade_fill[self.trade_fill["order_id"].isin(orders["id"])].copy()
@@ -58,6 +64,7 @@ class LoopyStrategyData(StrategyData):
         return LoopySingleMarketStrategyData(
             exchange=exchange,
             trading_pair=trading_pair,
+            candles_df=candles_df,
             orders=orders,
             order_status=order_status,
             trade_fill=trade_fill,
@@ -79,9 +86,32 @@ class LoopyStrategyData(StrategyData):
         else:
             return self.trade_fill["timestamp"].max()
     
+@dataclass
 class LoopySingleMarketStrategyData(SingleMarketStrategyData):
+    # exchange: str
+    # trading_pair: str
+    # orders: pd.DataFrame
+    # order_status: pd.DataFrame
+    # trade_fill: pd.DataFrame
+    # market_data: pd.DataFrame = None
+    # position_executor: pd.DataFrame = None
+    # executors: pd.DataFrame = None
+    candles_df: pd.DataFrame = None
 
     def get_filtered_strategy_data(self, start_date: datetime.datetime, end_date: datetime.datetime):
+        if self.candles_df is not None:
+            # print("Data type of candles timestamp:", self.candles_df['timestamp'].dtype)
+            # Ensure start_date and end_date are pandas timestamps
+            start_date = pd.to_datetime(start_date)
+            end_date = pd.to_datetime(end_date)
+
+            # Filter the DataFrame based on the date range
+            candles_df = self.candles_df[
+                (self.candles_df['timestamp'] >= start_date) &
+                (self.candles_df['timestamp'] <= end_date)
+            ].copy()
+            candles_df.set_index("timestamp", inplace=True)
+
         if self.orders is not None:
             orders = self.orders[
                 (self.orders["creation_timestamp"] >= start_date) & (self.orders["creation_timestamp"] <= end_date)].copy()
@@ -107,6 +137,7 @@ class LoopySingleMarketStrategyData(SingleMarketStrategyData):
             position_executor = None
 
         return LoopySingleMarketStrategyData(
+            candles_df=candles_df,
             exchange=self.exchange,
             trading_pair=self.trading_pair,
             orders=orders,
@@ -124,7 +155,25 @@ class LoopySingleMarketStrategyData(SingleMarketStrategyData):
     #     })
     #     data_resampled.columns = data_resampled.columns.droplevel(0)
     #     return data_resampled
-    
+
+    def get_candles_resampled(self, interval):
+        # Convert interval to a pandas offset to compare properly
+        # input_interval = to_offset(interval)
+        # five_minutes = to_offset('5m')
+        # input_interval = intervals[interval]
+        # five_minutes = intervals['5m']
+
+        # Check if the interval is less than or equal to 5 minutes
+        if interval <= (60 * 5):
+            return self.candles_df
+        else:
+            # Assuming self.candles_df has a datetime index
+            # if not self.candles_df.index.is_all_dates:
+            #     raise ValueError("DataFrame index must be datetime type for resampling.")
+            
+            # Perform resampling and aggregate, here using the last as an example
+            return self.candles_df.resample(f"{interval}S").last()
+
     @property
     def start_time(self):
         if self.orders is not None:

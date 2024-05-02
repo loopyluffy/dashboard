@@ -44,8 +44,19 @@ class LoopyRealDBManager(LoopyDBManager):
                 order_status = None
                 market_data = load_data(self.get_market_data, self.start_date, self.end_date)
                 orders, trade_fills, position_executors = load_data(self.get_trade_history_datum, self.start_date, self.end_date)
+                try:
+                    candles_df = self.get_candle_data(start_date=self.start_date, end_date=self.end_date)
+                except Exception as e:
+                    print(e)
+                    candles_df = None
                 if orders is not None:
-                    strategy_data = LoopyStrategyData(orders, order_status, trade_fills, market_data, position_executors)
+                    strategy_data = LoopyStrategyData(
+                                        orders=orders, 
+                                        order_status=order_status, 
+                                        trade_fill=trade_fills, 
+                                        market_data=market_data, 
+                                        candles_df=candles_df,
+                                        position_executor=position_executors)
         
         return strategy_data
     

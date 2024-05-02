@@ -6,11 +6,21 @@ from plotly.subplots import make_subplots
 
 from data_viz.dtypes import IndicatorConfig
 from data_viz.tracers import PandasTAPlotlyTracer, PerformancePlotlyTracer
-# from data_viz.candles import CandlesBase
-from data_viz.performance.performance_candles import PerformanceCandles
-# from utils.data_manipulation import StrategyData, SingleMarketStrategyData
+from data_viz.candles import CandlesBase
+# from data_viz.performance.performance_candles import PerformanceCandles
+# from data_viz.backtesting.backtesting_candles import BacktestingCandles
 
 from loopy_quant.loopy_data_manipulation import LoopyStrategyData, LoopySingleMarketStrategyData
+
+# example_case = [
+#     IndicatorConfig(visible=True, title="bbands", row=1, col=1, color="blue", length=20, std=2.0),
+#     IndicatorConfig(visible=True, title="ema", row=1, col=1, color="yellow", length=20),
+#     IndicatorConfig(visible=True, title="ema", row=1, col=1, color="yellow", length=40),
+#     IndicatorConfig(visible=True, title="ema", row=1, col=1, color="yellow", length=60),
+#     IndicatorConfig(visible=True, title="ema", row=1, col=1, color="yellow", length=80),
+#     IndicatorConfig(visible=True, title="macd", row=2, col=1, color="red", fast=12, slow=26, signal=9),
+#     IndicatorConfig(visible=True, title="rsi", row=3, col=1, color="green", length=14)
+# ]
 
 
 class LoopyTAPlotlyTracer(PandasTAPlotlyTracer):
@@ -138,11 +148,20 @@ class LoopyTAPlotlyTracer(PandasTAPlotlyTracer):
         # Ensure the adjusted color values stay within the 0 to 255 range
         adjusted = [max(min(component + adjustment, 255), 0) for component in color]
         return tuple(adjusted)
-        
+    
 
-class LoopyPerformanceCandles(PerformanceCandles):
+class LoopyCandles(CandlesBase):
+    # def __init__(self,
+    #              candles_df: pd.DataFrame,
+    #              indicators_config: List[IndicatorConfig] = None,
+    #              show_annotations=True,
+    #              line_mode=False,
+    #              show_indicators=False,
+    #              main_height=0.7,
+    #              max_height=1000,
+    #              rows: int = None,
+    #              row_heights: list = None):
     def __init__(self,
-                #  source: Union[StrategyData, SingleMarketStrategyData],
                  source: Union[LoopyStrategyData, LoopySingleMarketStrategyData],
                  indicators_config: List[IndicatorConfig] = None,
                  candles_df: pd.DataFrame = None,
@@ -155,45 +174,21 @@ class LoopyPerformanceCandles(PerformanceCandles):
                  show_indicators: bool = False,
                  show_quote_inventory_change: bool = True,
                  show_annotations: bool = False,
-                 executor_version: str = "v1",
+                #  executor_version: str = "v1",
                  main_height: float = 0.7):
         self.candles_df = candles_df
-
-        self.positions = source.executors if executor_version == "v2" else source.position_executor
-        self.executor_version = executor_version
-        self.show_buys = show_buys
-        self.show_sells = show_sells
-        self.show_positions = show_positions
-        self.show_pnl = show_pnl
-        self.show_quote_inventory_change = show_quote_inventory_change
         self.show_indicators = show_indicators
+        self.indicators_config = indicators_config
         # self update indicator config... @luffy
-        if indicators_config is not None:
-            self.indicators_config = indicators_config
-        elif show_indicators:
+        if show_indicators and indicators_config is None:
             self.add_indicator_config()
-        self.main_height = main_height
-
-        rows, row_heights = self.get_n_rows_and_heights()
-        # CandlesBase.__init__ -------------------------------------------------------------------------
-        # super().__init__(candles_df=self.candles_df,
-        #                  indicators_config=indicators_config,
-        #                  line_mode=line_mode,
-        #                  show_indicators=show_indicators,
-        #                  rows=rows,
-        #                  row_heights=row_heights,
-        #                  main_height=main_height,
-        #                  show_annotations=show_annotations)
-        # self.candles_df = candles_df
-        # self.show_indicators = show_indicators
-        # self.indicators_config = indicators_config
         self.show_annotations = show_annotations
         # self.indicators_tracer = PandasTAPlotlyTracer(candles_df)
         self.indicators_tracer = LoopyTAPlotlyTracer(candles_df)
         self.tracer = PerformancePlotlyTracer()
         self.line_mode = line_mode
-        # self.main_height = main_height
-        self.max_height = 1000
+        self.main_height = main_height
+        self.max_height = max_height
         self.rows = rows
         if rows is None:
             rows, row_heights = self.get_n_rows_and_heights()
@@ -212,27 +207,6 @@ class LoopyPerformanceCandles(PerformanceCandles):
         self.add_candles_graph()
         if self.show_indicators and self.indicators_config is not None:
             self.add_indicators()
-        # self.update_layout()
-        # ----------------------------------------------------------------------------------------------
-
-        if show_buys:
-            self.add_buy_trades(data=self.buys)
-        if show_sells:
-            self.add_sell_trades(data=self.sells)
-        if show_positions:
-            self.add_positions()
-        if show_pnl:
-            self.add_pnl(data=source.trade_fill,
-                         realized_pnl_column="realized_trade_pnl",
-                         fees_column="cum_fees_in_quote",
-                         net_realized_pnl_column="net_realized_pnl",
-                         row_number=rows - 1 if show_quote_inventory_change else rows)
-        if show_quote_inventory_change:
-            self.add_quote_inventory_change(data=source.trade_fill,
-                                            quote_inventory_change_column="inventory_cost",
-                                            row_number=rows)
-        if show_dca_prices:
-            self.add_dca_prices()
         self.update_layout()
 
     def add_indicator_config(self):
@@ -244,7 +218,7 @@ class LoopyPerformanceCandles(PerformanceCandles):
             # IndicatorConfig(visible=True, title="ema", row=1, col=1, color="yellow", length=80),
             IndicatorConfig(visible=True, title="macd", row=2, col=1, color="red", fast=12, slow=26, signal=9),
             # IndicatorConfig(visible=True, title="macd", row=2, col=1, color="red", fast=9, slow=26, signal=13),
-            IndicatorConfig(visible=True, title="macd_mc", row=2, col=1, color="blue", length=9),
+            # IndicatorConfig(visible=True, title="macd_mc", row=2, col=1, color="blue", length=9),
             IndicatorConfig(visible=True, title="atr", row=4, col=1, color="red", length=9),
             # IndicatorConfig(visible=True, title="rsi", row=3, col=1, color="green", length=14)
         ]
@@ -287,5 +261,6 @@ class LoopyPerformanceCandles(PerformanceCandles):
                 self.add_atr(indicator)
             else:
                 raise ValueError(f"{indicator.title} is not a valid indicator. Choose from bbands, ema, macd, rsi, macd_mc, atr")
+        
 
     

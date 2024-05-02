@@ -1,19 +1,23 @@
 import pandas as pd
-import json
+import pandas_ta as ta  # noqa: F401
 from typing import Union, List
+import plotly.graph_objs as go
+from plotly.subplots import make_subplots
 
-from data_viz.candles import CandlesBase
 from data_viz.dtypes import IndicatorConfig
-from utils.data_manipulation import StrategyData, SingleMarketStrategyData
+from data_viz.tracers import PandasTAPlotlyTracer, PerformancePlotlyTracer
+# from data_viz.candles import CandlesBase
+from data_viz.performance.performance_candles import PerformanceCandles
+# from utils.data_manipulation import StrategyData, SingleMarketStrategyData
 
-# loopy customizing @luffy
-from loopy_quant.loopy_candles import LoopyCandles
+from loopy_quant.loopy_candles import LoopyTAPlotlyTracer, LoopyCandles
+from loopy_quant.loopy_data_manipulation import LoopyStrategyData, LoopySingleMarketStrategyData
 
 
-# class PerformanceCandles(CandlesBase):
-class PerformanceCandles(LoopyCandles):
+class LoopyPerformanceCandles(LoopyCandles):
     def __init__(self,
-                 source: Union[StrategyData, SingleMarketStrategyData],
+                #  source: Union[StrategyData, SingleMarketStrategyData],
+                 source: Union[LoopyStrategyData, LoopySingleMarketStrategyData],
                  indicators_config: List[IndicatorConfig] = None,
                  candles_df: pd.DataFrame = None,
                  line_mode: bool = False,
@@ -37,18 +41,54 @@ class PerformanceCandles(LoopyCandles):
         self.show_pnl = show_pnl
         self.show_quote_inventory_change = show_quote_inventory_change
         self.show_indicators = show_indicators
-        self.indicators_config = indicators_config
+        # self update indicator config... @luffy
+        if indicators_config is not None:
+            self.indicators_config = indicators_config
+        elif show_indicators:
+            self.add_indicator_config()
         self.main_height = main_height
 
         rows, row_heights = self.get_n_rows_and_heights()
-        super().__init__(candles_df=self.candles_df,
-                         indicators_config=indicators_config,
-                         line_mode=line_mode,
-                         show_indicators=show_indicators,
-                         rows=rows,
-                         row_heights=row_heights,
-                         main_height=main_height,
-                         show_annotations=show_annotations)
+        # CandlesBase.__init__ -------------------------------------------------------------------------
+        # super().__init__(candles_df=self.candles_df,
+        #                  indicators_config=indicators_config,
+        #                  line_mode=line_mode,
+        #                  show_indicators=show_indicators,
+        #                  rows=rows,
+        #                  row_heights=row_heights,
+        #                  main_height=main_height,
+        #                  show_annotations=show_annotations)
+        # self.candles_df = candles_df
+        # self.show_indicators = show_indicators
+        # self.indicators_config = indicators_config
+        self.show_annotations = show_annotations
+        # self.indicators_tracer = PandasTAPlotlyTracer(candles_df)
+        self.indicators_tracer = LoopyTAPlotlyTracer(candles_df)
+        self.tracer = PerformancePlotlyTracer()
+        self.line_mode = line_mode
+        # self.main_height = main_height
+        self.max_height = 1000
+        self.rows = rows
+        if rows is None:
+            rows, row_heights = self.get_n_rows_and_heights()
+            self.rows = rows
+        specs = [[{"secondary_y": True}]] * self.rows
+        self.base_figure = make_subplots(rows=self.rows,
+                                         cols=1,
+                                         shared_xaxes=True,
+                                         vertical_spacing=0.005,
+                                         row_heights=row_heights,
+                                         specs=specs)
+        if 'timestamp' in candles_df.columns:
+            candles_df.set_index("timestamp", inplace=True)
+        self.min_time = candles_df.index.min()
+        self.max_time = candles_df.index.max()
+        self.add_candles_graph()
+        if self.show_indicators and self.indicators_config is not None:
+            self.add_indicators()
+        # self.update_layout()
+        # ----------------------------------------------------------------------------------------------
+
         if show_buys:
             self.add_buy_trades(data=self.buys)
         if show_sells:
@@ -68,6 +108,22 @@ class PerformanceCandles(LoopyCandles):
         if show_dca_prices:
             self.add_dca_prices()
         self.update_layout()
+
+    def add_indicator_config(self):
+        configs = [
+            IndicatorConfig(visible=True, title="bbands", row=1, col=1, color="blue", length=20, std=2.0),
+            # IndicatorConfig(visible=True, title="ema", row=1, col=1, color="yellow", length=20),
+            # IndicatorConfig(visible=True, title="ema", row=1, col=1, color="yellow", length=40),
+            # IndicatorConfig(visible=True, title="ema", row=1, col=1, color="yellow", length=60),
+            # IndicatorConfig(visible=True, title="ema", row=1, col=1, color="yellow", length=80),
+            IndicatorConfig(visible=True, title="macd", row=2, col=1, color="red", fast=12, slow=26, signal=9),
+            # IndicatorConfig(visible=True, title="macd", row=2, col=1, color="red", fast=9, slow=26, signal=13),
+            IndicatorConfig(visible=True, title="macd_mc", row=2, col=1, color="blue", length=9),
+            IndicatorConfig(visible=True, title="atr", row=4, col=1, color="red", length=9),
+            # IndicatorConfig(visible=True, title="rsi", row=3, col=1, color="green", length=14)
+        ]
+
+        self.indicators_config = configs
 
     @property
     def buys(self):
@@ -156,3 +212,4 @@ class PerformanceCandles(LoopyCandles):
         )
         self.base_figure.update_yaxes(title_text="Price", row=1, col=1)
         self.base_figure.update_xaxes(title_text="Time", row=self.rows, col=1)
+    

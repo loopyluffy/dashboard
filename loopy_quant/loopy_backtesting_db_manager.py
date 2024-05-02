@@ -22,6 +22,15 @@ class LoopyBacktestingDBManager(LoopyDBManager):
             
         strategy_data = None
 
+        # check date
+        if start_date is not None and end_date is not None and end_date > start_date:
+            self.start_date = start_date
+            self.end_date = end_date
+        else:
+            if self.start_date is None or self.end_date is None:
+                print("Check start & end date!!!")
+                return None
+
         # Use load_data to load tables
         if "postgres" in self.db_name:
             if "backtesting" in self.db_name:

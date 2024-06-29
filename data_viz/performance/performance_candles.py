@@ -7,7 +7,7 @@ from data_viz.dtypes import IndicatorConfig
 from utils.data_manipulation import StrategyData, SingleMarketStrategyData
 
 # loopy customizing @luffy
-from loopy_quant.loopy_candles import LoopyCandles
+from loopy_quant.viz.loopy_candles import LoopyCandles
 
 
 # class PerformanceCandles(CandlesBase):

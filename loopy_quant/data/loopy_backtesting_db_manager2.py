@@ -5,30 +5,30 @@ import pandas as pd
 from sqlalchemy import text #, create_engine
 # from sqlalchemy.orm import sessionmaker
 
-from quants_lab.strategy.strategy_analysis import StrategyAnalysis
-from loopy_quant.loopy_database_manager import LoopyDBManager
+# from quants_lab.strategy.strategy_analysis import StrategyAnalysis
+from loopy_quant.data.loopy_database_manager import LoopyDBManager
 
 
 class LoopyBacktestingDBManager2(LoopyDBManager):
-    def get_strategy_analysis(self, strategy=None, exchange=None, trading_pair=None, start_date=None, end_date=None):
-        if "postgres" in self.db_name:
-            if "backtesting" in self.db_name:
-                try:
-                    candle_data = self.get_candle_data(exchange=exchange, trading_pair=trading_pair, start_date=start_date, end_date=end_date)
-                except Exception as e:
-                    print(e)
-                    candle_data = None
-                try:
-                    position_executor = self.get_backtesting_executor_data(strategy=strategy, exchange=exchange, trading_pair=trading_pair, start_date=start_date, end_date=end_date)
-                except Exception as e:
-                    print(e)
-                    position_executor = None
+    # def get_strategy_analysis(self, strategy=None, exchange=None, trading_pair=None, start_date=None, end_date=None):
+    #     if "postgres" in self.db_name:
+    #         if "backtesting" in self.db_name:
+    #             try:
+    #                 candle_data = self.get_candle_data(exchange=exchange, trading_pair=trading_pair, start_date=start_date, end_date=end_date)
+    #             except Exception as e:
+    #                 print(e)
+    #                 candle_data = None
+    #             try:
+    #                 position_executor = self.get_backtesting_executor_data(strategy=strategy, exchange=exchange, trading_pair=trading_pair, start_date=start_date, end_date=end_date)
+    #             except Exception as e:
+    #                 print(e)
+    #                 position_executor = None
 
-        if candle_data is not None and position_executor is not None:
-            # return LoopyStrategyAnalysis(positions=position_executor, candles_df=candle_data)
-            return StrategyAnalysis(positions=position_executor, candles_df=candle_data)
-        else:
-            return None
+    #     if candle_data is not None and position_executor is not None:
+    #         # return LoopyStrategyAnalysis(positions=position_executor, candles_df=candle_data)
+    #         return StrategyAnalysis(positions=position_executor, candles_df=candle_data)
+    #     else:
+    #         return None
     
     @staticmethod
     def _get_backtesting_executors_query(strategy=None, exchange=None, trading_pair=None, start_date=None, end_date=None):
@@ -57,6 +57,9 @@ class LoopyBacktestingDBManager2(LoopyDBManager):
     def _get_backtesting_strategy_results_query(strategy):
         query = f"SELECT * FROM backtesting_result WHERE strategy = '{strategy}'"
         return query
+    
+    def get_position_data(self, strategy=None, exchange=None, trading_pair=None, start_date=None, end_date=None) -> pd.DataFrame:
+        return self.get_backtesting_executor_data(strategy, exchange, trading_pair, start_date, end_date)
     
     def get_backtesting_executor_data(self, strategy=None, exchange=None, trading_pair=None, start_date=None, end_date=None) -> pd.DataFrame:
         with self.session_maker() as session:

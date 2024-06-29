@@ -5,7 +5,7 @@ from data_viz.dtypes import IndicatorConfig
 from quants_lab.strategy.strategy_analysis import StrategyAnalysis
 
 # loopy customizing @luffy
-from loopy_quant.loopy_candles import LoopyCandles
+from loopy_quant.viz.loopy_candles import LoopyCandles
 
 
 # class BacktestingCandles(CandlesBase):

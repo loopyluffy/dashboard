@@ -6,11 +6,11 @@ from datetime import date, timedelta
 # from utils.os_utils import get_databases
 from utils.database_manager import DatabaseManager
 # change package @luffy
-from loopy_quant.loopy_database_manager import get_databases
-from loopy_quant.loopy_real_db_manager import LoopyRealDBManager
-from loopy_quant.loopy_backtesting_db_manager import LoopyBacktestingDBManager
+from loopy_quant.data.loopy_database_manager import get_databases
+from loopy_quant.data.loopy_real_db_manager import LoopyRealDBManager
+from loopy_quant.data.loopy_backtesting_db_manager import LoopyBacktestingDBManager
 # from utils.loopy_data_manipulation import LoopyStrategyData
-from loopy_quant.loopy_performance_candles import LoopyPerformanceCandles
+from loopy_quant.viz.loopy_performance_candles import LoopyPerformanceCandles
 
 from utils.graphs import PerformanceGraphs
 from data_viz.performance.performance_charts import PerformanceCharts

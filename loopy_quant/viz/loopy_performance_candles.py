@@ -10,8 +10,8 @@ from data_viz.tracers import PandasTAPlotlyTracer, PerformancePlotlyTracer
 from data_viz.performance.performance_candles import PerformanceCandles
 # from utils.data_manipulation import StrategyData, SingleMarketStrategyData
 
-from loopy_quant.loopy_candles import LoopyTAPlotlyTracer, LoopyCandles
-from loopy_quant.loopy_data_manipulation import LoopyStrategyData, LoopySingleMarketStrategyData
+from loopy_quant.viz.loopy_candles import LoopyTAPlotlyTracer, LoopyCandles
+from loopy_quant.data.loopy_data_manipulation import LoopyStrategyData, LoopySingleMarketStrategyData
 
 
 class LoopyPerformanceCandles(LoopyCandles):

@@ -8,8 +8,8 @@ from sqlalchemy import text #, create_engine
 from datetime import timedelta #, datetime
 
 # from utils.data_manipulation import StrategyData
-from loopy_quant.loopy_data_manipulation import LoopyStrategyData
-from loopy_quant.loopy_database_manager import LoopyDBManager
+from loopy_quant.data.loopy_data_manipulation import LoopyStrategyData
+from loopy_quant.data.loopy_database_manager import LoopyDBManager
 
 
 class LoopyRealDBManager(LoopyDBManager):
@@ -247,14 +247,14 @@ class LoopyRealDBManager(LoopyDBManager):
         position_executors = None
 
         with self.session_maker() as session:
-            query = self._get_order_log_query(start_date, end_date)
+            query = self._get_order_log_query(start_date=start_date, end_date=end_date)
             try:
                 order_log = pd.read_sql_query(text(query), session.connection())
             except Exception as e:
                 print(e)
                 return None
             
-            query = self._get_position_log_query(start_date, end_date)
+            query = self._get_position_log_query(start_date=start_date, end_date=end_date)
             try:
                 pos_log = pd.read_sql_query(text(query), session.connection())
             except Exception as e:
@@ -275,6 +275,31 @@ class LoopyRealDBManager(LoopyDBManager):
         print(f'position count: {len(position_executors)} ------------------')
 
         return orders, trade_fills, position_executors
+    
+    def get_position_data(self, strategy=None, exchange=None, trading_pair=None, start_date=None, end_date=None) -> pd.DataFrame:
+        with self.session_maker() as session:
+            query = self._get_order_log_query(exchange=exchange, trading_pair=trading_pair, start_date=start_date, end_date=end_date)
+            try:
+                order_log = pd.read_sql_query(text(query), session.connection())
+            except Exception as e:
+                print(e)
+                return None
+            
+            query = self._get_position_log_query(exchange=exchange, trading_pair=trading_pair, start_date=start_date, end_date=end_date)
+            try:
+                pos_log = pd.read_sql_query(text(query), session.connection())
+            except Exception as e:
+                print(e)
+                return None
+            
+        orders = self.get_orders(order_log)
+        if orders is None:
+            return None, None, None
+        
+        order_join_pos_df = self._get_order_join_position(order_log, pos_log)
+        position_executors = self.get_position_executors(order_join_pos_df)
+
+        return position_executors
     
     def get_orders(self, order_log:pd.DataFrame) -> pd.DataFrame:
 

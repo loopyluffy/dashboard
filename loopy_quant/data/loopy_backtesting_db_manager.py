@@ -6,9 +6,9 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
 # from utils.data_manipulation import StrategyData
-from loopy_quant.loopy_data_manipulation import LoopyStrategyData
+from loopy_quant.data.loopy_data_manipulation import LoopyStrategyData
 
-from loopy_quant.loopy_database_manager import LoopyDBManager
+from loopy_quant.data.loopy_database_manager import LoopyDBManager
 
 
 class LoopyBacktestingDBManager(LoopyDBManager):

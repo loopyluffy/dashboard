@@ -7,6 +7,7 @@ from sqlalchemy.orm import sessionmaker
 
 # from utils.data_manipulation import StrategyData
 # from loopy_quant.loopy_data_manipulation import LoopyBacktestingStrategyData
+from loopy_quant.data.loopy_strategy_analysis import LoopyPositionAnalysis
 
 from utils.database_manager import DatabaseManager
 
@@ -98,6 +99,20 @@ class LoopyDBManager(DatabaseManager):
             except Exception as e:
                 print(e)
 
+    def get_position_analysis(self, strategy=None, exchange=None, trading_pair=None, start_date=None, end_date=None):
+        try:
+            candles = self.get_candle_data(exchange=exchange, trading_pair=trading_pair, start_date=start_date, end_date=end_date)
+        except Exception as e:
+            print(e)
+            candles = None
+        try:
+            positions = self.get_position_data(strategy=strategy, exchange=exchange, trading_pair=trading_pair, start_date=start_date, end_date=end_date)
+        except Exception as e:
+            print(e)
+            return None
+
+        return LoopyPositionAnalysis(positions=positions, candles_df=candles)
+
     @staticmethod
     def _get_candle_info_query(exchange=None, trading_pair=None, start_date=None, end_date=None):
         # assign time duration forcely to test a external connection @luffy
@@ -155,9 +170,13 @@ class LoopyDBManager(DatabaseManager):
         return query
     
     @staticmethod
-    def _get_order_log_query(start_date=None, end_date=None):
+    def _get_order_log_query(exchange=None, trading_pair=None, start_date=None, end_date=None):
         query = "SELECT * FROM order_log"
         conditions = []
+        if exchange:
+            conditions.append(f"exchange = '{exchange}'")
+        if trading_pair:
+            conditions.append(f"symbol = '{trading_pair}'")
         if start_date:
             conditions.append(f"timestamp >= '{start_date}'")
         if end_date:
@@ -167,9 +186,13 @@ class LoopyDBManager(DatabaseManager):
         return query
     
     @staticmethod
-    def _get_position_log_query(start_date=None, end_date=None):
+    def _get_position_log_query(exchange=None, trading_pair=None, start_date=None, end_date=None):
         query = "SELECT * FROM position_log_01"
         conditions = []
+        if exchange:
+            conditions.append(f"exchange = '{exchange}'")
+        if trading_pair:
+            conditions.append(f"symbol = '{trading_pair}'")
         if start_date:
             conditions.append(f"timestamp >= '{start_date}'")
         if end_date:
@@ -213,6 +236,9 @@ class LoopyDBManager(DatabaseManager):
 
         return contract_multiplier, maker_fee_rate, taker_fee_rate
     
+    def get_position_data(self, strategy=None, exchange=None, trading_pair=None, start_date=None, end_date=None) -> pd.DataFrame:
+        raise NotImplementedError
+
     def get_candle_data(self, exchange=None, trading_pair=None, start_date=None, end_date=None):
         with self.candle_session_maker() as session:
             query = self._get_candle_info_query(exchange=exchange, trading_pair=trading_pair, start_date=start_date, end_date=end_date)
